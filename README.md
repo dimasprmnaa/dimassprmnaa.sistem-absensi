@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -54,6 +54,54 @@ tr:last-child td{border-bottom:none;}
 button.edit{background:var(--yellow);padding:5px 10px;border-radius:6px;color:white;font-size:12px;width:auto;}
 button.hapus{background:var(--red);padding:5px 10px;border-radius:6px;color:white;font-size:12px;width:auto;}
 
+/* MODAL PRIVASI */
+#privacyModal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  justify-content:center;
+  align-items:center;
+  z-index:99;
+}
+
+#privacyModal > div{
+  background:white;
+  padding:24px;
+  border-radius:12px;
+  width:90%;
+  max-width:500px;
+  display:flex;
+  flex-direction:column;
+}
+
+#privacyModal h3{
+  margin-top:0;
+  text-align:center;
+}
+
+#privacyModal .privacy-text{
+  max-height:300px;
+  overflow-y:auto;
+  font-size:13px;
+  line-height:1.5;
+  margin-bottom:16px;
+}
+
+#privacyModal button{
+  padding:10px 0;
+  background:var(--red);
+  color:white;
+  border:none;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+  width:100%;
+}
+
 /* WATERMARK */
 footer{position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:12px 0;font-size:13px;background:rgba(255,255,255,0.4);backdrop-filter:blur(6px);color:rgba(0,0,0,0.6);z-index:9;font-weight:600;}
 </style>
@@ -91,6 +139,7 @@ footer{position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:12px 
     <a href="#" class="active" onclick="menuDashboard()"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
     <a href="#" onclick="menuAbsensi()" id="btnAbsensi">Isi Absensi</a>
     <a href="#" onclick="menuPanelAdmin()" id="btnPanelAdmin">Panel Admin</a>
+    <a href="#" onclick="showPrivacy()"><i class="fa-solid fa-shield-halved"></i> Kebijakan Privasi</a>
     <a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
   </div>
 
@@ -109,6 +158,11 @@ footer{position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:12px 
       </thead>
       <tbody id="rekapSiswa"></tbody>
     </table>
+  </div>
+
+  <!-- DASHBOARD ADMIN -->
+  <div class="main" id="dashboardAdmin" style="display:none">
+    <!-- Statistik akan di-generate otomatis oleh JS -->
   </div>
 
   <!-- HALAMAN ISI ABSENSI SISWA -->
@@ -149,9 +203,23 @@ footer{position:fixed;bottom:0;left:0;width:100%;text-align:center;padding:12px 
 
 </div>
 
+<!-- MODAL PRIVASI -->
+<div id="privacyModal">
+  <div>
+    <h3>Kebijakan Privasi</h3>
+    <div class="privacy-text">
+      Sistem Absensi ini menghormati privasi pengguna. Data siswa yang dimasukkan seperti nama, NISN, kelas, dan status absensi
+      hanya digunakan untuk keperluan administrasi sekolah. Data tidak akan dibagikan ke pihak ketiga tanpa izin.
+      Administrator bertanggung jawab menjaga keamanan data, dan pengguna memiliki hak untuk meminta penghapusan data pribadi mereka.
+    </div>
+    <button onclick="closePrivacy()">Tutup</button>
+  </div>
+</div>
+
 <footer>© Sistem Absensi 2025 - By Dimas Permana Putra</footer>
 
 <script>
+// DATA
 let data=JSON.parse(localStorage.getItem("absen")||"[]");
 
 // LOGIN
@@ -188,8 +256,16 @@ function toggleSidebar(){sidebar.classList.toggle("hide");document.querySelector
 function menuDashboard(){
   document.querySelectorAll(".main").forEach(m=>m.style.display="none");
   topTitle.innerText="Dashboard";
-  if(sessionStorage.getItem("role")==="admin"){panelAdmin.style.display="none"; dashboardAdmin.style.display="block"; renderPanelAdmin(); updateStat();}
-  else{dashboardSiswa.style.display="block"; absensiSiswa.style.display="none"; renderRekapSiswa();}
+  if(sessionStorage.getItem("role")==="admin"){
+    panelAdmin.style.display="none"; 
+    dashboardAdmin.style.display="block"; 
+    renderPanelAdmin(); 
+    updateStat();
+  } else{
+    dashboardSiswa.style.display="block"; 
+    absensiSiswa.style.display="none"; 
+    renderRekapSiswa();
+  }
 }
 
 function menuAbsensi(){document.querySelectorAll(".main").forEach(m=>m.style.display="none"); absensiSiswa.style.display="block"; topTitle.innerText="Isi Absensi";}
@@ -232,23 +308,46 @@ function editPanel(i){
 
 function hapusPanel(i){if(confirm("Hapus data ini?")){data.splice(i,1);localStorage.setItem("absen",JSON.stringify(data)); renderPanelAdmin(); updateStat();}}
 
+// STATISTIK ADMIN
 function updateStat(){
-  if(sessionStorage.getItem("role")==="admin"){
-    let jmlMengisi=[...new Set(data.map(d=>d.nisn))].length;
-    let jmlHadir=data.filter(d=>d.status==="Hadir").length;
-    let jmlSakit=data.filter(d=>d.status==="Sakit").length;
-    let jmlIzin=data.filter(d=>d.status==="Izin").length;
-    let jmlTelat=data.filter(d=>d.status==="Terlambat").length;
-    let jmlAlfa=data.filter(d=>d.status==="Alfa").length;
-    dashboardAdmin.innerHTML=`<h3>Statistik Absensi</h3><div class="cards">
-      <div class="stat-card"><span>Siswa Mengisi</span><p>${jmlMengisi}</p></div>
-      <div class="stat-card"><span>Hadir</span><p>${jmlHadir}</p></div>
-      <div class="stat-card"><span>Sakit</span><p>${jmlSakit}</p></div>
-      <div class="stat-card"><span>Izin</span><p>${jmlIzin}</p></div>
-      <div class="stat-card"><span>Terlambat</span><p>${jmlTelat}</p></div>
-      <div class="stat-card"><span>Alfa</span><p>${jmlAlfa}</p></div>
-    </div>`;
-  }
+  if(sessionStorage.getItem("role")!=="admin") return;
+
+  const totalData = data.length;
+  const siswaUnik = [...new Set(data.map(d=>d.nisn))].length;
+
+  const hitung = (s)=> data.filter(d=>d.status===s).length;
+
+  const hadir = hitung("Hadir");
+  const sakit = hitung("Sakit");
+  const izin  = hitung("Izin");
+  const telat = hitung("Terlambat");
+  const alfa  = hitung("Alfa");
+
+  const persen = (n)=> totalData ? Math.round((n/totalData)*100) : 0;
+
+  dashboardAdmin.innerHTML = `
+    <h3>Dashboard Statistik Admin</h3>
+
+    <div class="cards">
+      <div class="stat-card"><span>Total Data</span><p>${totalData}</p></div>
+      <div class="stat-card"><span>Siswa Mengisi</span><p>${siswaUnik}</p></div>
+      <div class="stat-card"><span>Hadir</span><p>${hadir}</p></div>
+      <div class="stat-card"><span>Sakit</span><p>${sakit}</p></div>
+      <div class="stat-card"><span>Izin</span><p>${izin}</p></div>
+      <div class="stat-card"><span>Alfa</span><p>${alfa}</p></div>
+    </div>
+
+    <div class="login-box" style="margin-top:20px">
+      <b>Persentase Kehadiran</b>
+      <div style="margin-top:10px;font-size:13px">
+        Hadir : ${persen(hadir)}%<br>
+        Sakit : ${persen(sakit)}%<br>
+        Izin : ${persen(izin)}%<br>
+        Terlambat : ${persen(telat)}%<br>
+        Alfa : ${persen(alfa)}%
+      </div>
+    </div>
+  `;
 }
 
 // DOWNLOAD EXCEL
@@ -258,6 +357,10 @@ function downloadExcel(){
   XLSX.utils.book_append_sheet(wb,ws,"Absensi");
   XLSX.writeFile(wb,"absensi.xlsx");
 }
+
+// MODAL PRIVASI
+function showPrivacy(){document.getElementById("privacyModal").style.display="flex";}
+function closePrivacy(){document.getElementById("privacyModal").style.display="none";}
 </script>
 
 </body>
